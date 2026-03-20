@@ -11,3 +11,8 @@ Gillespie D, Oswald M, Hastie G and Sparling C (2022) Marine Mammal HiCUP: A Hig
 
 **CompleteArduinoCode** Arduino code that builds for an Arduino Mega 2560 with a big Screw shield breakout board, and an Ethernet board. 
 
+![Image of HiCUP junction box](/images/jbox1.jpg)
+
+![Image of HiCUP junction box](/images/jbox2.jpg)
+
+
