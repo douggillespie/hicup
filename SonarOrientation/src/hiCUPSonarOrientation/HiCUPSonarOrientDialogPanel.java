@@ -1,0 +1,1273 @@
+/*
+ *  PAMGUARD - Passive Acoustic Monitoring GUARDianship.
+ * To assist in the Detection Classification and Localisation
+ * of marine mammals (cetaceans).
+ *
+ * Copyright (C) 2006
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+
+
+package hiCUPSonarOrientation;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.JToggleButton;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+
+import PamController.PamController;
+import PamUtils.PamCalendar;
+import PamView.dialog.PamDialog;
+import arduino.ArduinoControl;
+import arduino.ArduinoDevice;
+import arduino.ArduinoDeviceListener;
+import hiCUPSonarOrientation.devices.BatteryCharger;
+import hiCUPSonarOrientation.devices.Camera;
+import hiCUPSonarOrientation.devices.LinearActuator;
+import hiCUPSonarOrientation.devices.OrientationBoard;
+import hiCUPSonarOrientation.devices.Sonar;
+import hiCUPSonarOrientation.devices.UVLight;
+
+/**
+ * @author mo55
+ *
+ */
+public class HiCUPSonarOrientDialogPanel implements ArduinoDeviceListener {
+
+	// ****************************************************************************
+	// ***             Arduino commands that this plugin knows
+	// ****************************************************************************
+
+	public static final int TILTACTUATOR = 0;
+	
+	public static final String TILTACTNAME = "Tilt Actuator";
+	
+	public static final int ROLLACTUATOR = 1;
+	
+	public static final String ROLLACTNAME = "Roll Actuator";
+	
+	public static final int SONARORIENT = 0;
+	
+	public static final String SONARORIENTNAME = "Sonar Orientation Board";
+	
+	public static final int FRAMEORIENT = 1;
+	
+	public static final String FRAMEORIENTNAME = "Frame Orientation Board";
+	
+	public static final int SONAR0 = 0;
+	
+	public static final String SONAR0NAME = "Sonar 0";
+	
+	public static final int SONAR1 = 1;
+	
+	public static final String SONAR1NAME = "Sonar 1";
+	
+	public static final String BATTERYCHARGER = "Battery Charger";
+	
+	public static final int UVSONAR = 0;
+	
+	public static final String UVSONARNAME = "UV Light on Sonars";
+	
+	public static final int UVPAM = 1;
+	
+	public static final String UVPAMNAME = "UV Light on PAM";
+	
+	public static final int CAMERAID = 0;
+	
+	public static final String CAMERANAME = "Junction Box Camera";
+	
+	
+	// ****************************************************************************
+	// ***             Fields used by this class
+	// ****************************************************************************
+	
+	/**
+	 * link to the sonar parameters used in this dialog
+	 */
+	private HiCUPSonarOrientParams sonarParams;
+	
+	/**
+	 * link to the sonar data block (for logging parameters to database)
+	 */
+	private HiCUPSonarOrientDataBlock sonarDataBlock;
+	
+	/**
+	 * Link to the arduino communication object
+	 */
+	private ArduinoControl arduino;
+	
+	private LinearActuator tiltAct;
+	
+	private LinearActuator rollAct;
+	
+	private OrientationBoard sonarOrient;
+	
+	private OrientationBoard frameOrient;
+	
+	private Sonar sonar0;
+	
+	private Sonar sonar1;
+	
+	private BatteryCharger batteryCharger;
+	
+	private UVLight uvSonar;
+
+	private UVLight uvPAM;
+	
+	private Camera camera;
+
+	/**
+	 * valid range of actuator position values.  This is the range that the user sees -127 to 128.  Before
+	 * sending to the actuators, the values are shifted to 0-255.  Easier for the user to understand negative
+	 * and positive values, where 0 = the center position.
+	 */
+	private int[] actRange = new int[2];
+	
+	/**
+	 * the previous position of the tilt actuator, before changing
+	 */
+
+	
+	// ****************************************************************************
+	// ***             Dialog components automatically 
+	// ***			   generated by WindowBuilder
+	// ****************************************************************************
+	private JPanel mainPanel;
+	private JPanel pnlOrient;
+	private JPanel pnlCtrl;
+	private JButton btnTiltUp;
+	private JButton btnRollLeft;
+	private JButton btnRollRight;
+	private JButton btnTiltDown;
+	private JPanel pnlText;
+	private JLabel lblSonarRdg;
+	private JLabel lblYaw;
+	private JTextField txtSonarYaw;
+	private JLabel lblPitch;
+	private JTextField txtSonarPitch;
+	private JLabel lblRoll2;
+	private JTextField txtSonarRoll;
+	private JPanel pnlButtons;
+	private JButton btnTiltPwr;
+	private JButton btnRollPwr;
+	private JPanel pnlBtnMain;
+	private JLabel lblFrameRdg;
+	private JTextField txtFrameYaw;
+	private JTextField txtFramePitch;
+	private JTextField txtFrameRoll;
+	private JPanel pnlCtrlMain;
+	private JLabel label_1;
+	private JLabel label_2;
+	private JLabel label_6;
+	private JLabel label_12;
+	private JPanel pnlCtrlVals;
+	private JLabel lblTilt;
+	private JTextField txtTilt;
+	private JLabel lblRoll;
+	private JTextField txtRoll;
+	private Component rigidArea;
+
+	private JButton btnLog;
+	private JPanel pnlSonar;
+	private JLabel lblSonar0PwrStat;
+	private JButton btnSonar0Pwr;
+	private JButton btnSonar0Chk;
+	private JLabel lblSonar1PwrStat;
+	private JButton btnSonar1Pwr;
+	private JButton btnSonar1Chk;
+	private JToggleButton tglBatt;
+	private JPanel pnlUV;
+	private JLabel lblUVSonarPwrStat;
+	private JButton btnUVSonarPwr;
+	private JButton btnUVSonarChk;
+	private JLabel lblUVPAMPwrStat;
+	private JButton btnUVPAMPwr;
+	private JButton btnUVPAMChk;
+	private JLabel lblUVSonarDuty;
+	private JTextField txtUVSonarDuty;
+	private JLabel lblNewLabel;
+	private JLabel lblUVPAMDuty;
+	private JTextField txtUVPAMDuty;
+	private JLabel lblNewLabel_1;
+	private JPanel pnlCam;
+	private JLabel lblCamPwrStat;
+	private JButton btnCamPwr;
+	private JButton btnCameraChk;
+
+	/**
+	 * @param sonarDataBlock 
+	 * @wbp.parser.entryPoint
+	 * 
+	 */
+	public HiCUPSonarOrientDialogPanel(HiCUPSonarOrientDataBlock sonarDataBlock) {
+		this.sonarDataBlock = sonarDataBlock;
+		
+		// create all of the Arduino devices and register this class as a device listener
+		arduino = (ArduinoControl) PamController.getInstance().findControlledUnit(ArduinoControl.arduinoType);
+		tiltAct = new LinearActuator(arduino, TILTACTNAME, TILTACTUATOR);
+		rollAct = new LinearActuator(arduino, ROLLACTNAME, ROLLACTUATOR);
+		sonarOrient = new OrientationBoard(arduino, SONARORIENTNAME, SONARORIENT);
+		frameOrient = new OrientationBoard(arduino, FRAMEORIENTNAME, FRAMEORIENT);
+		sonar0 = new Sonar(arduino, SONAR0NAME, SONAR0);
+		sonar1 = new Sonar(arduino, SONAR1NAME, SONAR1);
+		batteryCharger = new BatteryCharger(arduino, BATTERYCHARGER, 0);
+		uvSonar = new UVLight(arduino, UVSONARNAME, UVSONAR);
+		uvPAM = new UVLight(arduino, UVPAMNAME, UVPAM);
+		camera = new Camera(arduino, CAMERANAME, CAMERAID);
+		arduino.registerDeviceListener(this);
+		
+		// create the panel
+		createPanel();
+	}
+	
+	public void createPanel() {
+		
+		this.mainPanel = new JPanel();
+		mainPanel.setBorder(null);
+		GridBagLayout gbl_mainPanel = new GridBagLayout();
+		gbl_mainPanel.rowWeights = new double[]{1.0, 0.0, 1.0, 1.0};
+		gbl_mainPanel.columnWeights = new double[]{1.0};
+		mainPanel.setLayout(gbl_mainPanel);
+		
+		// ****************************************************************************
+		// ***************************  sonar power panel  ****************************
+		// removed from main panel - sonar units will always be on
+		pnlSonar = new JPanel();
+		pnlSonar.setBorder(new TitledBorder(null, "Sonar Power", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		GridBagConstraints gbc_pnlSonar = new GridBagConstraints();
+		gbc_pnlSonar.insets = new Insets(10, 5, 5, 0);
+		gbc_pnlSonar.fill = GridBagConstraints.BOTH;
+		gbc_pnlSonar.gridx = 0;
+		gbc_pnlSonar.gridy = 0;
+//		mainPanel.add(pnlSonar, gbc_pnlSonar);
+		GridBagLayout gbl_pnlSonar = new GridBagLayout();
+		gbl_pnlSonar.columnWidths = new int[]{0, 0, 0, 0};
+		gbl_pnlSonar.rowHeights = new int[]{0, 0, 0};
+		gbl_pnlSonar.columnWeights = new double[]{1.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_pnlSonar.rowWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+		pnlSonar.setLayout(gbl_pnlSonar);
+		
+		lblSonar0PwrStat = new JLabel("Sonar 0 is OFF");
+		GridBagConstraints gbc_lblSonar0PwrStat = new GridBagConstraints();
+		gbc_lblSonar0PwrStat.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblSonar0PwrStat.insets = new Insets(5, 5, 5, 5);
+		gbc_lblSonar0PwrStat.gridx = 0;
+		gbc_lblSonar0PwrStat.gridy = 0;
+		pnlSonar.add(lblSonar0PwrStat, gbc_lblSonar0PwrStat);
+		
+		btnSonar0Pwr = new JButton("Turn Sonar 0 On");
+		GridBagConstraints gbc_btnSonar0Pwr = new GridBagConstraints();
+		gbc_btnSonar0Pwr.insets = new Insets(5, 5, 5, 5);
+		gbc_btnSonar0Pwr.gridx = 1;
+		gbc_btnSonar0Pwr.gridy = 0;
+		pnlSonar.add(btnSonar0Pwr, gbc_btnSonar0Pwr);
+		btnSonar0Pwr.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (sonar0.isOn) {
+					sonar0.turnOff();
+				} else {
+					sonar0.turnOn();
+				}
+			}
+		});
+		
+		btnSonar0Chk = new JButton("Check Sonar 0 Status");
+		GridBagConstraints gbc_btnSonar0Chk = new GridBagConstraints();
+		gbc_btnSonar0Chk.insets = new Insets(5, 5, 5, 5);
+		gbc_btnSonar0Chk.gridx = 2;
+		gbc_btnSonar0Chk.gridy = 0;
+		pnlSonar.add(btnSonar0Chk, gbc_btnSonar0Chk);
+		btnSonar0Chk.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				sonar0.checkPower();
+			}
+		});
+		
+		lblSonar1PwrStat = new JLabel("Sonar 1 is OFF");
+		GridBagConstraints gbc_lblSonar1PwrStat = new GridBagConstraints();
+		gbc_lblSonar1PwrStat.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblSonar1PwrStat.insets = new Insets(5, 5, 0, 5);
+		gbc_lblSonar1PwrStat.gridx = 0;
+		gbc_lblSonar1PwrStat.gridy = 1;
+		pnlSonar.add(lblSonar1PwrStat, gbc_lblSonar1PwrStat);
+		
+		btnSonar1Pwr = new JButton("Turn Sonar 1 On");
+		GridBagConstraints gbc_btnSonar1Pwr = new GridBagConstraints();
+		gbc_btnSonar1Pwr.insets = new Insets(5, 5, 5, 5);
+		gbc_btnSonar1Pwr.gridx = 1;
+		gbc_btnSonar1Pwr.gridy = 1;
+		pnlSonar.add(btnSonar1Pwr, gbc_btnSonar1Pwr);
+		btnSonar1Pwr.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (sonar1.isOn) {
+					sonar1.turnOff();
+				} else {
+					sonar1.turnOn();
+				}
+			}
+		});
+		
+		btnSonar1Chk = new JButton("Check Sonar 1 Status");
+		btnSonar1Chk.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				sonar1.checkPower();
+			}
+		});
+		GridBagConstraints gbc_btnSonar1Chk = new GridBagConstraints();
+		gbc_btnSonar1Chk.insets = new Insets(5, 5, 5, 5);
+		gbc_btnSonar1Chk.gridx = 2;
+		gbc_btnSonar1Chk.gridy = 1;
+		pnlSonar.add(btnSonar1Chk, gbc_btnSonar1Chk);
+		btnSonar1Chk.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				sonar1.checkPower();
+			}
+		});
+		
+		// ****************************************************************************
+		// **********************  orienatation control panel *************************
+		pnlOrient = new JPanel();
+		pnlOrient.setBorder(new TitledBorder(null, "Sonar Orientation", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		GridBagConstraints gbc_pnlOrient = new GridBagConstraints();
+//		gbc_pnlOrient.ipady = 10;
+//		gbc_pnlOrient.ipadx = 5;
+		gbc_pnlOrient.insets = new Insets(10, 5, 5, 0);
+		gbc_pnlOrient.fill = GridBagConstraints.BOTH;
+		gbc_pnlOrient.gridx = 0;
+		gbc_pnlOrient.gridy = 0;
+		mainPanel.add(pnlOrient, gbc_pnlOrient);
+		pnlOrient.setLayout(new BoxLayout(pnlOrient, BoxLayout.X_AXIS));
+		
+		pnlCtrlMain = new JPanel();
+		pnlOrient.add(pnlCtrlMain);
+		pnlCtrlMain.setLayout(new BoxLayout(pnlCtrlMain, BoxLayout.Y_AXIS));
+		
+		pnlCtrl = new JPanel();
+		pnlCtrl.setAlignmentY(Component.TOP_ALIGNMENT);
+		pnlCtrlMain.add(pnlCtrl);
+		pnlCtrl.setLayout(new GridLayout(3, 3, 0, 0));
+		
+		label_1 = new JLabel("");
+		pnlCtrl.add(label_1);
+		
+		btnTiltUp = new JButton("");
+		ImageIcon icon = new ImageIcon(HiCUPSonarOrientDialogPanel.class.getResource("/Resources/PamPanZoomUp.png"));
+		Image img = icon.getImage();
+		Image newimg = img.getScaledInstance(20, 20,  java.awt.Image.SCALE_SMOOTH);
+		ImageIcon newIcon = new ImageIcon(newimg);
+		btnTiltUp.setIcon(newIcon);
+		pnlCtrl.add(btnTiltUp);
+		btnTiltUp.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				tiltAct.upOne();
+				txtTilt.setText(String.valueOf(tiltAct.getCurrentPos()-LinearActuator.CTRACTUATORVAL));
+			}
+		});
+		
+		label_2 = new JLabel("");
+		pnlCtrl.add(label_2);
+		
+		btnRollLeft = new JButton("");
+		icon = new ImageIcon(HiCUPSonarOrientDialogPanel.class.getResource("/Resources/PamPanZoomRotateAnticlockwise.png"));
+		img = icon.getImage();
+		newimg = img.getScaledInstance(20, 20,  java.awt.Image.SCALE_SMOOTH);
+		newIcon = new ImageIcon(newimg);
+		btnRollLeft.setIcon(newIcon);
+		pnlCtrl.add(btnRollLeft);
+		btnRollLeft.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				rollAct.downOne();
+				txtRoll.setText(String.valueOf(rollAct.getCurrentPos()-LinearActuator.CTRACTUATORVAL));
+			}
+		});
+		
+		label_6 = new JLabel("");
+		pnlCtrl.add(label_6);
+		
+		btnRollRight = new JButton("");
+		icon = new ImageIcon(HiCUPSonarOrientDialogPanel.class.getResource("/Resources/PamPanZoomRotateClockwise.png"));
+		img = icon.getImage();
+		newimg = img.getScaledInstance(20, 20,  java.awt.Image.SCALE_SMOOTH);
+		newIcon = new ImageIcon(newimg);
+		btnRollRight.setIcon(newIcon);
+		pnlCtrl.add(btnRollRight);
+		btnRollRight.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				rollAct.upOne();
+				txtRoll.setText(String.valueOf(rollAct.getCurrentPos()-LinearActuator.CTRACTUATORVAL));
+			}
+		});
+		
+		label_12 = new JLabel("");
+		pnlCtrl.add(label_12);
+		
+		btnTiltDown = new JButton("");
+		icon = new ImageIcon(HiCUPSonarOrientDialogPanel.class.getResource("/Resources/PamPanZoomDown.png"));
+		img = icon.getImage();
+		newimg = img.getScaledInstance(20, 20,  java.awt.Image.SCALE_SMOOTH);
+		newIcon = new ImageIcon(newimg);
+		btnTiltDown.setIcon(newIcon);
+		pnlCtrl.add(btnTiltDown);
+		btnTiltDown.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				tiltAct.downOne();
+				txtTilt.setText(String.valueOf(tiltAct.getCurrentPos()-LinearActuator.CTRACTUATORVAL));
+			}
+		});
+		
+		rigidArea = Box.createRigidArea(new Dimension(20, 10));
+		pnlCtrlMain.add(rigidArea);
+				
+		pnlCtrlVals = new JPanel();
+		pnlCtrlMain.add(pnlCtrlVals);
+
+		lblTilt = new JLabel("Tilt Value");
+		pnlCtrlVals.add(lblTilt);
+
+		txtTilt = new JTextField();
+		txtTilt.setColumns(4);
+		txtTilt.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int newVal;
+				try {
+					newVal = Integer.valueOf(txtTilt.getText());
+					
+					// shift the position, and send to the actuator
+					tiltAct.moveActuator(newVal+LinearActuator.CTRACTUATORVAL);
+				}
+				catch (NumberFormatException err) {
+					String errMess = "Position value must be between " +
+							String.valueOf(actRange[0]) +
+							" and " +
+							String.valueOf(actRange[1]);
+					PamDialog.showWarning(null, "Invalid Actuator Position",errMess);
+				}
+				txtTilt.setText(String.valueOf(tiltAct.getCurrentPos()-LinearActuator.CTRACTUATORVAL));
+			}
+		});
+		pnlCtrlVals.add(txtTilt);
+
+		lblRoll = new JLabel("Roll Value");
+		pnlCtrlVals.add(lblRoll);
+
+		txtRoll = new JTextField();
+		txtRoll.setColumns(4);
+		txtRoll.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int newVal;
+				try {
+					newVal = Integer.valueOf(txtRoll.getText());
+					
+					// shift the position, and send to the actuator
+					rollAct.moveActuator(newVal+LinearActuator.CTRACTUATORVAL);
+				}
+				catch (NumberFormatException err) {
+					String errMess = "Position value must be between " +
+							String.valueOf(actRange[0]) +
+							" and " +
+							String.valueOf(actRange[1]);
+					PamDialog.showWarning(null, "Invalid Actuator Position",errMess);
+				}
+				txtRoll.setText(String.valueOf(rollAct.getCurrentPos()-LinearActuator.CTRACTUATORVAL));
+			}
+		});
+		pnlCtrlVals.add(txtRoll);
+
+		pnlBtnMain = new JPanel();
+		pnlBtnMain.setBorder(new EmptyBorder(5, 5, 10, 5));
+		pnlOrient.add(pnlBtnMain);
+		pnlBtnMain.setLayout(new BorderLayout(0, 0));
+		
+		pnlButtons = new JPanel();
+		pnlBtnMain.add(pnlButtons, BorderLayout.CENTER);
+		pnlButtons.setLayout(new GridLayout(4, 1, 0, 5));
+		
+		btnTiltPwr = new JButton("Turn Tilt Actuator On");
+		btnTiltPwr.setMaximumSize(new Dimension(20, 10));
+		pnlButtons.add(btnTiltPwr);
+		btnTiltPwr.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (tiltAct.isOn) {
+					tiltAct.turnOff();
+				} else {
+					batteryCharger.turnOff();
+					rollAct.turnOff();
+					tiltAct.turnOn();
+				}
+			}
+		});
+		
+		btnRollPwr = new JButton("Turn Roll Actuator On");
+		pnlButtons.add(btnRollPwr);
+		btnRollPwr.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (rollAct.isOn) {
+					rollAct.turnOff();
+				} else {
+					batteryCharger.turnOff();
+					tiltAct.turnOff();
+					rollAct.turnOn();
+				}
+			}
+		});
+		
+		btnLog = new JButton("Log Current Parameters");
+		btnLog.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				logCurrentParams();
+			}
+		});
+		pnlButtons.add(btnLog);
+		
+		tglBatt = new JToggleButton("Charge Battery",false);
+		pnlButtons.add(tglBatt);
+		tglBatt.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				if (e.getStateChange() == ItemEvent.SELECTED) {
+					
+					// first make sure that the power going to the actuators is off
+					tiltAct.turnOff();
+					rollAct.turnOff();
+					
+					// turn the battery charger on and change the text on the button
+					batteryCharger.turnOn();
+				}
+				
+				else {
+					batteryCharger.turnOff();
+				}
+			}
+		});
+		
+		
+		// *********************************************************************************************************
+		// *********************** Orientation Measurements - FSM300 board output **********************************
+		pnlText = new JPanel();
+		pnlText.setBorder(new TitledBorder(null, "Orientation Measurements", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		pnlText.setAlignmentX(1.0f);
+		GridBagConstraints gbc_pnlText = new GridBagConstraints();
+		gbc_pnlText.insets = new Insets(10, 5, 5, 0);
+		gbc_pnlText.fill = GridBagConstraints.BOTH;
+		gbc_pnlText.gridx = 0;
+		gbc_pnlText.gridy = 1;
+		mainPanel.add(pnlText, gbc_pnlText);
+		GridBagLayout gbl_pnlText = new GridBagLayout();
+		gbl_pnlText.columnWeights = new double[]{0.0, 0.0, 0.0, 1.0};
+		pnlText.setLayout(gbl_pnlText);
+		
+		lblYaw = new JLabel("Yaw");
+		GridBagConstraints gbc_lblYaw = new GridBagConstraints();
+		gbc_lblYaw.insets = new Insets(10, 5, 5, 5);
+		gbc_lblYaw.gridx = 1;
+		gbc_lblYaw.gridy = 0;
+		pnlText.add(lblYaw, gbc_lblYaw);
+		
+		lblPitch = new JLabel("Pitch");
+		GridBagConstraints gbc_lblPitch = new GridBagConstraints();
+		gbc_lblPitch.insets = new Insets(10, 5, 5, 5);
+		gbc_lblPitch.gridx = 2;
+		gbc_lblPitch.gridy = 0;
+		pnlText.add(lblPitch, gbc_lblPitch);
+		
+		lblRoll2 = new JLabel("Roll");
+		GridBagConstraints gbc_lblRoll2 = new GridBagConstraints();
+		gbc_lblRoll2.insets = new Insets(10, 5, 5, 0);
+		gbc_lblRoll2.gridx = 3;
+		gbc_lblRoll2.gridy = 0;
+		pnlText.add(lblRoll2, gbc_lblRoll2);
+		
+		lblSonarRdg = new JLabel("Sonar");
+		GridBagConstraints gbc_lblSonarRdg = new GridBagConstraints();
+		gbc_lblSonarRdg.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblSonarRdg.gridwidth = 1;
+		gbc_lblSonarRdg.insets = new Insets(5, 10, 5, 5);
+		gbc_lblSonarRdg.gridx = 0;
+		gbc_lblSonarRdg.gridy = 1;
+		pnlText.add(lblSonarRdg, gbc_lblSonarRdg);
+		
+		txtSonarYaw = new JTextField();
+		txtSonarYaw.setEditable(false);
+		txtSonarYaw.setColumns(4);
+		GridBagConstraints gbc_txtSonarYaw = new GridBagConstraints();
+		gbc_txtSonarYaw.weightx = 1.0;
+		gbc_txtSonarYaw.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtSonarYaw.anchor = GridBagConstraints.WEST;
+		gbc_txtSonarYaw.insets = new Insets(5, 5, 5, 5);
+		gbc_txtSonarYaw.gridx = 1;
+		gbc_txtSonarYaw.gridy = 1;
+		pnlText.add(txtSonarYaw, gbc_txtSonarYaw);
+		
+		txtSonarPitch = new JTextField();
+		txtSonarPitch.setEditable(false);
+		txtSonarPitch.setColumns(4);
+		GridBagConstraints gbc_txtSonarPitch = new GridBagConstraints();
+		gbc_txtSonarPitch.weightx = 1.0;
+		gbc_txtSonarPitch.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtSonarPitch.anchor = GridBagConstraints.WEST;
+		gbc_txtSonarPitch.insets = new Insets(5, 5, 5, 5);
+		gbc_txtSonarPitch.gridx = 2;
+		gbc_txtSonarPitch.gridy = 1;
+		pnlText.add(txtSonarPitch, gbc_txtSonarPitch);
+		
+		txtSonarRoll = new JTextField();
+		txtSonarRoll.setEditable(false);
+		txtSonarRoll.setColumns(4);
+		GridBagConstraints gbc_txtSonarRoll = new GridBagConstraints();
+		gbc_txtSonarRoll.weightx = 1.0;
+		gbc_txtSonarRoll.insets = new Insets(5, 5, 5, 10);
+		gbc_txtSonarRoll.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtSonarRoll.anchor = GridBagConstraints.WEST;
+		gbc_txtSonarRoll.gridx = 3;
+		gbc_txtSonarRoll.gridy = 1;
+		pnlText.add(txtSonarRoll, gbc_txtSonarRoll);
+		
+		lblFrameRdg = new JLabel("Frame");
+		GridBagConstraints gbc_lblFrameRdg = new GridBagConstraints();
+		gbc_lblFrameRdg.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblFrameRdg.insets = new Insets(0, 10, 10, 5);
+		gbc_lblFrameRdg.gridx = 0;
+		gbc_lblFrameRdg.gridy = 2;
+		pnlText.add(lblFrameRdg, gbc_lblFrameRdg);
+		
+		txtFrameYaw = new JTextField();
+		txtFrameYaw.setEditable(false);
+		txtFrameYaw.setColumns(4);
+		GridBagConstraints gbc_txtFrameYaw = new GridBagConstraints();
+		gbc_txtFrameYaw.weightx = 1.0;
+		gbc_txtFrameYaw.insets = new Insets(0, 5, 10, 5);
+		gbc_txtFrameYaw.anchor = GridBagConstraints.WEST;
+		gbc_txtFrameYaw.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtFrameYaw.gridx = 1;
+		gbc_txtFrameYaw.gridy = 2;
+		pnlText.add(txtFrameYaw, gbc_txtFrameYaw);
+		
+		txtFramePitch = new JTextField();
+		txtFramePitch.setEditable(false);
+		txtFramePitch.setColumns(4);
+		GridBagConstraints gbc_txtFramePitch = new GridBagConstraints();
+		gbc_txtFramePitch.weightx = 1.0;
+		gbc_txtFramePitch.insets = new Insets(0, 5, 10, 5);
+		gbc_txtFramePitch.anchor = GridBagConstraints.WEST;
+		gbc_txtFramePitch.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtFramePitch.gridx = 2;
+		gbc_txtFramePitch.gridy = 2;
+		pnlText.add(txtFramePitch, gbc_txtFramePitch);
+		
+		txtFrameRoll = new JTextField();
+		txtFrameRoll.setEditable(false);
+		txtFrameRoll.setColumns(4);
+		GridBagConstraints gbc_txtFrameRoll = new GridBagConstraints();
+		gbc_txtFrameRoll.weightx = 1.0;
+		gbc_txtFrameRoll.insets = new Insets(0, 5, 10, 10);
+		gbc_txtFrameRoll.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtFrameRoll.anchor = GridBagConstraints.WEST;
+		gbc_txtFrameRoll.gridx = 3;
+		gbc_txtFrameRoll.gridy = 2;
+		pnlText.add(txtFrameRoll, gbc_txtFrameRoll);
+		
+		// *********************************************************************************************************
+		// ************************************ UV Panel ***********************************************************
+		pnlUV = new JPanel();
+		pnlUV.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "UV Control", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
+		GridBagConstraints gbc_pnlUV = new GridBagConstraints();
+		gbc_pnlUV.insets = new Insets(10, 5, 10, 0);
+		gbc_pnlUV.fill = GridBagConstraints.BOTH;
+		gbc_pnlUV.gridx = 0;
+		gbc_pnlUV.gridy = 2;
+		mainPanel.add(pnlUV, gbc_pnlUV);
+		GridBagLayout gbl_pnlUV = new GridBagLayout();
+		gbl_pnlUV.columnWeights = new double[]{0.0, 0.0, 1.0, 0.0};
+//		gbl_pnlUV.columnWeights = new double[]{0.0, 0.0, 1.0, 0.0};
+		pnlUV.setLayout(gbl_pnlUV);
+		
+		lblUVSonarPwrStat = new JLabel("Sonar UV is OFF");
+		GridBagConstraints gbc_lblUVSonarPwrStat = new GridBagConstraints();
+		gbc_lblUVSonarPwrStat.gridheight = 2;
+		gbc_lblUVSonarPwrStat.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblUVSonarPwrStat.insets = new Insets(5, 5, 5, 10);
+		gbc_lblUVSonarPwrStat.gridx = 0;
+		gbc_lblUVSonarPwrStat.gridy = 0;
+		pnlUV.add(lblUVSonarPwrStat, gbc_lblUVSonarPwrStat);
+		
+		btnUVSonarPwr = new JButton("Turn Sonar UV On");
+		btnUVSonarPwr.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (uvSonar.isOn) {
+					uvSonar.turnOff();
+				} else {
+					uvSonar.turnOn();
+				}
+			}
+		});
+		GridBagConstraints gbc_btnUVSonarPwr = new GridBagConstraints();
+		gbc_btnUVSonarPwr.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnUVSonarPwr.insets = new Insets(5, 5, 5, 5);
+		gbc_btnUVSonarPwr.gridx = 1;
+		gbc_btnUVSonarPwr.gridy = 0;
+		pnlUV.add(btnUVSonarPwr, gbc_btnUVSonarPwr);
+		
+		btnUVSonarChk = new JButton("Check Sonar UV Status");
+		btnUVSonarChk.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				uvSonar.checkPower();
+			}
+		});
+		GridBagConstraints gbc_btnUVSonarChk = new GridBagConstraints();
+		gbc_btnUVSonarChk.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnUVSonarChk.gridwidth = 2;
+		gbc_btnUVSonarChk.insets = new Insets(5, 5, 5, 10);
+		gbc_btnUVSonarChk.gridx = 2;
+		gbc_btnUVSonarChk.gridy = 0;
+		pnlUV.add(btnUVSonarChk, gbc_btnUVSonarChk);
+		
+		lblUVSonarDuty = new JLabel("Duty Cycle");
+		GridBagConstraints gbc_lblUVSonarDuty = new GridBagConstraints();
+		gbc_lblUVSonarDuty.anchor = GridBagConstraints.EAST;
+		gbc_lblUVSonarDuty.insets = new Insets(0, 5, 5, 5);
+		gbc_lblUVSonarDuty.gridx = 1;
+		gbc_lblUVSonarDuty.gridy = 1;
+		pnlUV.add(lblUVSonarDuty, gbc_lblUVSonarDuty);
+		
+		txtUVSonarDuty = new JTextField();
+		GridBagConstraints gbc_txtUVSonarDuty = new GridBagConstraints();
+		gbc_txtUVSonarDuty.weightx = 1.0;
+		gbc_txtUVSonarDuty.insets = new Insets(0, 5, 5, 5);
+		gbc_txtUVSonarDuty.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtUVSonarDuty.gridx = 2;
+		gbc_txtUVSonarDuty.gridy = 1;
+		pnlUV.add(txtUVSonarDuty, gbc_txtUVSonarDuty);
+		txtUVSonarDuty.setColumns(4);
+		txtUVSonarDuty.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int newVal;
+				try {
+					newVal = Integer.valueOf(txtUVSonarDuty.getText());
+					newVal = Math.max(newVal, 1);	// min 1 minute duty cycle
+					newVal = Math.min(newVal, 120);  // max 2 hour duty cycle
+					uvSonar.setDutyCycle(newVal);
+				}
+				catch (NumberFormatException err) {
+					String errMess = "Duty cycle must be between 1 and 120 minutes";
+					PamDialog.showWarning(null, "Invalid Duty Cycle",errMess);
+				}
+				txtUVSonarDuty.setText(String.valueOf(uvSonar.getDutyCycle()));
+			}
+		});
+
+		lblNewLabel = new JLabel("minutes");
+		GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+		gbc_lblNewLabel.insets = new Insets(0, 5, 5, 10);
+		gbc_lblNewLabel.gridx = 3;
+		gbc_lblNewLabel.gridy = 1;
+		pnlUV.add(lblNewLabel, gbc_lblNewLabel);
+		
+		lblUVPAMPwrStat = new JLabel("PAM UV is OFF");
+		GridBagConstraints gbc_lblUVPAMPwrStat = new GridBagConstraints();
+		gbc_lblUVPAMPwrStat.gridheight = 2;
+		gbc_lblUVPAMPwrStat.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblUVPAMPwrStat.insets = new Insets(5, 5, 5, 10);
+		gbc_lblUVPAMPwrStat.gridx = 0;
+		gbc_lblUVPAMPwrStat.gridy = 2;
+		pnlUV.add(lblUVPAMPwrStat, gbc_lblUVPAMPwrStat);
+		
+		btnUVPAMPwr = new JButton("Turn PAM UV On");
+		btnUVPAMPwr.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (uvPAM.isOn) {
+					uvPAM.turnOff();
+				} else {
+					uvPAM.turnOn();
+				}
+			}
+		});
+		btnUVPAMPwr.setPreferredSize(btnUVSonarPwr.getPreferredSize());
+		GridBagConstraints gbc_btnUVPAMPwr = new GridBagConstraints();
+		gbc_btnUVPAMPwr.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnUVPAMPwr.insets = new Insets(5, 5, 5, 5);
+		gbc_btnUVPAMPwr.gridx = 1;
+		gbc_btnUVPAMPwr.gridy = 2;
+		pnlUV.add(btnUVPAMPwr, gbc_btnUVPAMPwr);
+		
+		btnUVPAMChk = new JButton("Check PAM UV Status");
+		btnUVPAMChk.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				uvPAM.checkPower();
+			}
+		});
+		btnUVPAMChk.setPreferredSize(btnUVSonarChk.getPreferredSize());
+		GridBagConstraints gbc_btnUVPAMChk = new GridBagConstraints();
+		gbc_btnUVPAMChk.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnUVPAMChk.gridwidth = 2;
+		gbc_btnUVPAMChk.insets = new Insets(5, 5, 5, 10);
+		gbc_btnUVPAMChk.gridx = 2;
+		gbc_btnUVPAMChk.gridy = 2;
+		pnlUV.add(btnUVPAMChk, gbc_btnUVPAMChk);
+		
+		lblUVPAMDuty = new JLabel("Duty Cycle");
+		GridBagConstraints gbc_lblUVPAMDuty = new GridBagConstraints();
+		gbc_lblUVPAMDuty.anchor = GridBagConstraints.EAST;
+		gbc_lblUVPAMDuty.insets = new Insets(0, 5, 5, 5);
+		gbc_lblUVPAMDuty.gridx = 1;
+		gbc_lblUVPAMDuty.gridy = 3;
+		pnlUV.add(lblUVPAMDuty, gbc_lblUVPAMDuty);
+		
+		txtUVPAMDuty = new JTextField();
+		txtUVPAMDuty.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				int newVal;
+				try {
+					newVal = Integer.valueOf(txtUVPAMDuty.getText());
+					newVal = Math.max(newVal, 1);	// min 1 minute duty cycle
+					newVal = Math.min(newVal, 120);  // max 2 hour duty cycle
+					uvPAM.setDutyCycle(newVal);
+				}
+				catch (NumberFormatException err) {
+					String errMess = "Duty cycle must be between 1 and 120 minutes";
+					PamDialog.showWarning(null, "Invalid Duty Cycle",errMess);
+				}
+				txtUVPAMDuty.setText(String.valueOf(uvPAM.getDutyCycle()));
+			}
+		});
+		GridBagConstraints gbc_txtUVPAMDuty = new GridBagConstraints();
+		gbc_txtUVPAMDuty.insets = new Insets(0, 5, 5, 5);
+		gbc_txtUVPAMDuty.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txtUVPAMDuty.gridx = 2;
+		gbc_txtUVPAMDuty.gridy = 3;
+		pnlUV.add(txtUVPAMDuty, gbc_txtUVPAMDuty);
+		txtUVPAMDuty.setColumns(4);
+		
+		lblNewLabel_1 = new JLabel("minutes");
+		GridBagConstraints gbc_lblNewLabel_1 = new GridBagConstraints();
+		gbc_lblNewLabel_1.insets = new Insets(0, 5, 5, 10);
+		gbc_lblNewLabel_1.gridx = 3;
+		gbc_lblNewLabel_1.gridy = 3;
+		pnlUV.add(lblNewLabel_1, gbc_lblNewLabel_1);
+
+
+
+		// *********************************************************************************************************
+		// ************************************ Camera Panel ***********************************************************
+		pnlCam = new JPanel();
+		pnlCam.setBorder(new TitledBorder(null, "Camera Control", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		GridBagConstraints gbc_pnlCam = new GridBagConstraints();
+		gbc_pnlCam.insets = new Insets(10, 5, 10, 0);
+		gbc_pnlCam.fill = GridBagConstraints.BOTH;
+		gbc_pnlCam.gridx = 0;
+		gbc_pnlCam.gridy = 3;
+		mainPanel.add(pnlCam, gbc_pnlCam);
+		GridBagLayout gbl_pnlCam = new GridBagLayout();
+//		gbl_pnlCam.rowHeights = new int[]{23, 0};
+//		gbl_pnlCam.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0};
+//		gbl_pnlCam.rowWeights = new double[]{0.0, Double.MIN_VALUE};
+		pnlCam.setLayout(gbl_pnlCam);
+		
+		lblCamPwrStat = new JLabel("Camera is OFF");
+		GridBagConstraints gbc_lblCamPwrStat = new GridBagConstraints();
+		gbc_lblCamPwrStat.anchor = GridBagConstraints.WEST;
+		gbc_lblCamPwrStat.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblCamPwrStat.insets = new Insets(5, 5, 5, 10);
+		gbc_lblCamPwrStat.gridx = 0;
+		gbc_lblCamPwrStat.gridy = 0;
+		pnlCam.add(lblCamPwrStat, gbc_lblCamPwrStat);
+		
+		btnCamPwr = new JButton("Turn Camera On");
+		GridBagConstraints gbc_btnCamPwr = new GridBagConstraints();
+		gbc_btnCamPwr.insets = new Insets(5, 5, 5, 10);
+		gbc_btnCamPwr.gridx = 2;
+		gbc_btnCamPwr.gridy = 0;
+		pnlCam.add(btnCamPwr, gbc_btnCamPwr);
+		btnCamPwr.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (camera.isOn) {
+					camera.turnOff();
+				} else {
+					camera.turnOn();
+				}
+			}
+		});
+		
+		btnCameraChk = new JButton("Check Camera Status");
+		GridBagConstraints gbc_btnCameraChk = new GridBagConstraints();
+		gbc_btnCameraChk.insets = new Insets(5, 5, 5, 10);
+		gbc_btnCameraChk.gridx = 3;
+		gbc_btnCameraChk.gridy = 0;
+		pnlCam.add(btnCameraChk, gbc_btnCameraChk);
+		btnCameraChk.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				camera.checkPower();
+			}
+		});
+		
+	}
+
+	
+	
+	
+	
+	
+	
+
+	
+	
+	
+
+	/**
+	 * save the data in a PamDataUnit, so that the logger automatically saves to the database
+	 */
+	protected void logCurrentParams() {
+		float sonarYaw = 999;
+		float sonarPitch = 999;
+		float sonarRoll = 999;
+		float frameYaw = 999;
+		float framePitch = 999;
+		float frameRoll = 999;
+		
+		// use 999 to indicate a problem.  Replace with the actual values if there are some (assume if we've got one, we've got them all)
+		if (txtSonarYaw.getText()!="999") {
+			sonarYaw = Float.valueOf(txtSonarYaw.getText());
+			sonarPitch = Float.valueOf(txtSonarPitch.getText());
+			sonarRoll = Float.valueOf(txtSonarRoll.getText());
+		}
+		if (txtFrameYaw.getText()!="999") {
+			frameYaw = Float.valueOf(txtFrameYaw.getText());
+			framePitch = Float.valueOf(txtFramePitch.getText());
+			frameRoll = Float.valueOf(txtFrameRoll.getText());
+		}
+		HiCUPSonarOrientDataUnit newUnit = new HiCUPSonarOrientDataUnit(
+						PamCalendar.getTimeInMillis(),
+						sonarParams,
+						sonarYaw,
+						sonarPitch,
+						sonarRoll,
+						frameYaw,
+						framePitch,
+						frameRoll,
+						uvSonar.getDutyCycle(),
+						uvPAM.getDutyCycle());
+		
+		sonarDataBlock.addPamData(newUnit);
+	}
+	
+	
+	/**
+	 * if the Arduino just got the response from a power check, update the buttons accordingly
+	 */
+	@Override
+	public void devicePowerStat(String deviceName, int deviceID, boolean isOn) {
+		updateButtons();
+	}
+
+
+	/**
+	 * Enable/disable buttons, based on whether the devices are
+	 * on or off
+	 */
+	protected void updateButtons() {
+		
+		// check the battery charge button first, because it's state will affect other buttons
+		if (tglBatt.getModel().isSelected()) {
+			tglBatt.setText("Stop Charging");
+			btnTiltPwr.setEnabled(false);
+			btnRollPwr.setEnabled(false);
+		} else {
+			tglBatt.setText("Charge Battery");
+			btnTiltPwr.setEnabled(true);
+			btnRollPwr.setEnabled(true);
+		}
+		
+		// Linear Actuators
+		if (tiltAct.isOn) {
+			btnTiltPwr.setText("Turn Tilt Actuator Off");
+			btnTiltUp.setEnabled(true);
+			btnTiltDown.setEnabled(true);
+			txtTilt.setEnabled(true);
+			txtTilt.setEditable(true);
+		} else {
+			btnTiltPwr.setText("Turn Tilt Actuator On");
+			btnTiltUp.setEnabled(false);
+			btnTiltDown.setEnabled(false);
+			txtTilt.setEnabled(false);
+			txtTilt.setEditable(false);
+		}
+		
+		if (rollAct.isOn) {
+			btnRollPwr.setText("Turn Roll Actuator Off");
+			btnRollLeft.setEnabled(true);
+			btnRollRight.setEnabled(true);
+			txtRoll.setEnabled(true);
+			txtRoll.setEditable(true);
+		} else {
+			btnRollPwr.setText("Turn Roll Actuator On");
+			btnRollLeft.setEnabled(false);
+			btnRollRight.setEnabled(false);
+			txtRoll.setEnabled(false);
+			txtRoll.setEditable(false);
+		}
+		
+		// Sonar units
+		if (sonar0.isOn) {
+			lblSonar0PwrStat.setText("Sonar 0 is ON");
+			btnSonar0Pwr.setText("Turn Sonar 0 off");
+		} else {
+			lblSonar0PwrStat.setText("Sonar 0 is OFF");
+			btnSonar0Pwr.setText("Turn Sonar 0 on");
+		}
+		
+		if (sonar1.isOn) {
+			lblSonar1PwrStat.setText("Sonar 1 is ON");
+			btnSonar1Pwr.setText("Turn Sonar 1 off");
+		} else {
+			lblSonar1PwrStat.setText("Sonar 1 is OFF");
+			btnSonar1Pwr.setText("Turn Sonar 1 on");
+		}
+		
+		// UV Lights
+		if (uvSonar.isOn) {
+			lblUVSonarPwrStat.setText("Sonar UV is ON");
+			btnUVSonarPwr.setText("Turn Sonar UV Off");
+		} else {
+			lblUVSonarPwrStat.setText("Sonar UV is OFF");
+			btnUVSonarPwr.setText("Turn Sonar UV On");
+		}
+		
+		if (uvPAM.isOn) {
+			lblUVPAMPwrStat.setText("PAM UV is ON");
+			btnUVPAMPwr.setText("Turn PAM UV Off");
+		} else {
+			lblUVPAMPwrStat.setText("PAM UV is OFF");
+			btnUVPAMPwr.setText("Turn PAM UV On");
+		}
+		
+		// Camera
+		if (camera.isOn) {
+			lblCamPwrStat.setText("Camera is On");
+			btnCamPwr.setText("Turn Camera Off");
+		} else {
+			lblCamPwrStat.setText("Camera is Off");
+			btnCamPwr.setText("Turn Camera On");
+		}
+
+	}
+		
+	
+	/**
+	 * return the panel object 
+	 */
+	public JComponent getDialogComponent() {
+		return mainPanel;
+	}
+
+	/**
+	 * Set the values in the dialog to match the parameters
+	 * 
+	 * @param sonarParams the parameters to use
+	 */
+	public void setParams(HiCUPSonarOrientParams sonarParams) {
+		// set the values in the dialog to match the parameters
+		this.sonarParams = sonarParams.clone();
+		this.actRange [0] = LinearActuator.MINACTUATORVAL - LinearActuator.CTRACTUATORVAL;
+		this.actRange[1] = LinearActuator.MAXACTUATORVAL - LinearActuator.CTRACTUATORVAL;
+		tiltAct.setCurrentPos(sonarParams.getTilt()+LinearActuator.CTRACTUATORVAL);
+		this.txtTilt.setText(String.valueOf(sonarParams.getTilt()));
+		rollAct.setCurrentPos(sonarParams.getRoll()+LinearActuator.CTRACTUATORVAL);
+		this.txtRoll.setText(String.valueOf(sonarParams.getRoll()));
+		this.txtUVSonarDuty.setText(String.valueOf(sonarParams.getUvSonarDC()));
+		this.txtUVPAMDuty.setText(String.valueOf(sonarParams.getUvPAMDC()));
+		
+		// put dummy params into the orientation boxes, until they can be replaced with real params
+		this.txtSonarYaw.setText("999");
+		this.txtSonarPitch.setText("999");
+		this.txtSonarRoll.setText("999");
+		this.txtFrameYaw.setText("999");
+		this.txtFramePitch.setText("999");
+		this.txtFrameRoll.setText("999");
+		
+		// initialize the Arduino devices
+		arduino.initializeDevices();
+	}
+	
+	/**
+	 * Turn off the linear actuators and orientation boards (and anything else with  
+	 * a shutdown routine).  It is up to the calling
+	 * program to call this function, since this panel has no idea when it
+	 * should be stopping (e.g. it doesn't know when it is being displayed or
+	 * not) 
+	 * @param weShouldLog if true, log the current values in the database.  If false, don't log
+	 */
+	public void stopEverything(boolean weShouldLog) {
+		// save current settings to database
+		if (weShouldLog) {
+			logCurrentParams();
+		}
+		
+		// tell the arduino devices to run their shut down routines
+		arduino.shutDownDevices();
+	}
+	
+
+	/**
+	 * Take the current parameters from the dialog and put them back into the parameters object
+	 * 
+	 * @return
+	 */
+	public HiCUPSonarOrientParams getParams() {
+		
+		// save the linear actuator positions
+		try {
+			Integer tiltVal = Integer.valueOf(txtTilt.getText());
+			Integer rollVal = Integer.valueOf(txtRoll.getText());
+			if (tiltVal<actRange[0] || tiltVal>actRange[1] || rollVal < actRange[0] || rollVal>actRange[1]) {
+				PamDialog.showWarning(null, "Invalid Tilt or Roll number",
+						"Tilt and Roll must be between "
+						+ String.valueOf(actRange[0]) 
+						+ " and "
+						+ String.valueOf(actRange[1])
+						);
+				return null;
+			}
+			sonarParams.setTilt(tiltVal);
+			sonarParams.setRoll(rollVal);
+		}
+		catch (NumberFormatException e) {
+			PamDialog.showWarning(null, "Invalid Tilt or Roll number",
+					"Tilt and Roll must be between "
+					+ String.valueOf(actRange[0]) 
+					+ " and "
+					+ String.valueOf(actRange[1])
+					);
+			return null;
+		}
+		
+		// save the UV light duty cycles
+		try {
+			Integer sonarDC = Integer.valueOf(txtUVSonarDuty.getText());
+			Integer pamDC = Integer.valueOf(txtUVPAMDuty.getText());
+			if (sonarDC<1 || sonarDC>120 || pamDC < 1 || pamDC>120) {
+				PamDialog.showWarning(null, "Invalid Duty Cycle",
+						"UV Duty Cycle must be between 1 and 120 minutes");
+				return null;
+			}
+			sonarParams.setUvSonarDC(sonarDC);
+			sonarParams.setUvPAMDC(pamDC);
+		}
+		catch (NumberFormatException e) {
+			PamDialog.showWarning(null, "Invalid Duty Cycle",
+					"UV Duty Cycle must be between 1 and 120 minutes");
+			return null;
+		}
+		return sonarParams;
+	}
+
+
+	@Override
+	public void messageFromDevice(String deviceName, int deviceID, String[] message) {
+		// if this is an error message, ignore.  It's already been printed to the console
+		if (message[message.length-1].equals(ArduinoDevice.NAK)) return;
+		
+		// if this is from an orientation board, update the orientation text boxes
+		if (deviceName.equals(SONARORIENTNAME) || deviceName.equals(FRAMEORIENTNAME)) {
+			float yaw = Float.valueOf(message[0]);
+			float pitch = Float.valueOf(message[1]);
+			float roll = Float.valueOf(message[2]);
+			updateOrientation(deviceID, yaw, pitch, roll);
+		}
+		
+		// if this is from a UV light, update the UV duty cycle text box
+		else if (deviceName.equals(UVSONARNAME) || deviceName.equals(UVPAMNAME)) {
+			int dc = Integer.valueOf(message[0]);
+			updateDutyCycle(deviceID, dc);
+		}
+	}
+
+	
+	/**
+	 * Update the orientation text boxes in the dialog with new values
+	 * 
+	 * @param device which orientation board the readings are from
+	 * @param yaw
+	 * @param pitch
+	 * @param roll
+	 */
+	private void updateOrientation(int device, float yaw, float pitch, float roll) {
+		if (device == SONARORIENT) {
+			txtSonarYaw.setText(String.valueOf(yaw));
+			txtSonarPitch.setText(String.valueOf(pitch));
+			txtSonarRoll.setText(String.valueOf(roll));
+		}
+		else {
+			txtFrameYaw.setText(String.valueOf(yaw));
+			txtFramePitch.setText(String.valueOf(pitch));
+			txtFrameRoll.setText(String.valueOf(roll));
+		}
+	}
+	
+
+	public void updateDutyCycle(int deviceID, int dc) {
+		if (deviceID == UVSONAR) {
+			txtUVSonarDuty.setText(String.valueOf(dc));
+		} else {
+			txtUVPAMDuty.setText(String.valueOf(dc));
+		}
+	}
+
+}
