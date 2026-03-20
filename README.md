@@ -9,3 +9,5 @@ Gillespie D, Oswald M, Hastie G and Sparling C (2022) Marine Mammal HiCUP: A Hig
 
 **Sonar Orientation** Controls actuators on the HiCUP to orientate the sonars, measures tilt/roll, activates battery charger, UV LED's, Camera, etc. 
 
+**CompleteArduinoCode** Arduino code that builds for an Arduino Mega 2560 with a big Screw shield breakout board, and an Ethernet board. 
+
